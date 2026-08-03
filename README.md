@@ -63,6 +63,16 @@ Start the local vector-capable database:
 docker compose up -d
 ~~~
 
+## Run the visual demo
+
+Requirements: Node.js 18+.
+
+~~~bash
+node demo/server.mjs
+~~~
+
+Open `http://127.0.0.1:4173/` in a browser. Choose a tenant, run a policy question, and inspect the rewrite, retrieval, grounding, citation, and audit stages. Try a question containing `unknown` to see the no-evidence refusal path.
+
 ## Production roadmap
 
 - Add Spring Boot REST endpoints and OpenAPI contracts.
