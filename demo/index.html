@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enterprise RAG Control Plane</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(14, 29, 50, 0.84);
+      --panel-strong: #102541;
+      --border: rgba(148, 163, 184, 0.2);
+      --text: #e5edf8;
+      --muted: #91a4bd;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+      --green: #3ddc97;
+      --orange: #ffb86b;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(88, 166, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 100% 20%, rgba(188, 140, 255, 0.16), transparent 28%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 800px;
+      margin-bottom: 14px;
+      font-size: clamp(36px, 6vw, 72px);
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+    }
+
+    .intro {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .topbar, .panel, .metric {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 32px 0 20px;
+      padding: 18px 20px;
+      border-radius: 18px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+      content: "";
+    }
+
+    .version {
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .metric {
+      padding: 20px;
+      border-radius: 16px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .metric-value {
+      margin-top: 12px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr;
+      gap: 20px;
+    }
+
+    .panel {
+      border-radius: 20px;
+      padding: 24px;
+    }
+
+    .panel h2 {
+      margin-bottom: 8px;
+      font-size: 20px;
+    }
+
+    .panel-subtitle {
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .query-form {
+      display: grid;
+      grid-template-columns: 170px 1fr auto;
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    select, input, button {
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font: inherit;
+    }
+
+    select, input {
+      width: 100%;
+      background: rgba(5, 13, 25, 0.82);
+      padding: 0 14px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.14);
+    }
+
+    button {
+      padding: 0 18px;
+      background: linear-gradient(135deg, var(--blue), #7c5cff);
+      border: 0;
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform 160ms ease, filter 160ms ease;
+    }
+
+    button:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 128px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(8, 19, 34, 0.8);
+      overflow: hidden;
+    }
+
+    .stage::after {
+      position: absolute;
+      right: 14px;
+      bottom: 12px;
+      color: var(--green);
+      content: "✓";
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .stage-number {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 9px;
+      background: rgba(88, 166, 255, 0.14);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .stage strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+    }
+
+    .stage span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .answer {
+      padding: 20px;
+      border: 1px solid rgba(61, 220, 151, 0.26);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(61, 220, 151, 0.08), rgba(88, 166, 255, 0.08));
+    }
+
+    .answer-label {
+      margin-bottom: 10px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .answer-text {
+      margin-bottom: 20px;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .citations {
+      display: grid;
+      gap: 8px;
+    }
+
+    .citation {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(3, 10, 19, 0.48);
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .citation strong {
+      color: var(--text);
+    }
+
+    .audit-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .audit-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .audit-row dt {
+      color: var(--muted);
+    }
+
+    .audit-row dd {
+      margin: 0;
+      color: var(--text);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      text-align: right;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(61, 220, 151, 0.12);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .note {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .shell {
+        width: min(100% - 24px, 1180px);
+        padding-top: 28px;
+      }
+
+      .metrics, .pipeline {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .query-form {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="eyebrow">AI systems engineering · live demo</div>
+    <h1>Enterprise RAG Control Plane</h1>
+    <p class="intro">A visual preview of a grounded, tenant-aware retrieval workflow. Ask a question, inspect the pipeline, and see the citations and audit event that travel with the answer.</p>
+
+    <div class="topbar">
+      <div class="status">Control plane operational</div>
+      <div class="version">java-core / rag-orchestrator / v0.1.0</div>
+    </div>
+
+    <section class="metrics" aria-label="System metrics">
+      <div class="metric">
+        <div class="metric-label">Tenant isolation</div>
+        <div class="metric-value">Enforced</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Citation budget</div>
+        <div class="metric-value">6 chunks</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Audit mode</div>
+        <div class="metric-value">Structured</div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel">
+        <h2>Grounded query workspace</h2>
+        <p class="panel-subtitle">This demo mirrors the orchestration contract in the Java core. The response is deliberately grounded in retrieved evidence instead of inventing an answer.</p>
+
+        <form class="query-form" id="queryForm">
+          <select id="tenant" aria-label="Tenant">
+            <option value="acme">acme</option>
+            <option value="northstar">northstar</option>
+            <option value="orbit">orbit</option>
+          </select>
+          <input id="query" aria-label="Question" value="How many annual leave days are available?" autocomplete="off">
+          <button type="submit">Run query</button>
+        </form>
+
+        <div class="pipeline" aria-label="RAG pipeline">
+          <div class="stage">
+            <span class="stage-number">01</span>
+            <strong>Rewrite</strong>
+            <span>Normalize intent and attach tenant scope.</span>
+          </div>
+          <div class="stage">
+            <span class="stage-number">02</span>
+            <strong>Retrieve</strong>
+            <span>Search only the tenant’s document boundary.</span>
+          </div>
+          <div class="stage">
+            <span class="stage-number">03</span>
+            <strong>Ground</strong>
+            <span>Keep the answer tied to evidence chunks.</span>
+          </div>
+          <div class="stage">
+            <span class="stage-number">04</span>
+            <strong>Audit</strong>
+            <span>Record grounding status and citation count.</span>
+          </div>
+        </div>
+
+        <div class="answer">
+          <div class="answer-label">Grounded response</div>
+          <div class="answer-text" id="answerText">The policy provides twenty days of annual leave.</div>
+          <div class="citations" id="citations">
+            <div class="citation"><strong>policy-7</strong><span>leave-policy.md · 0.94</span></div>
+            <div class="citation"><strong>chunk-1</strong><span>tenant: acme</span></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <h2>Audit event</h2>
+        <p class="panel-subtitle">Every answer carries an operational record that can be shipped to logs, traces, or a compliance store.</p>
+        <dl class="audit-list">
+          <div class="audit-row"><dt>tenant_id</dt><dd id="auditTenant">acme</dd></div>
+          <div class="audit-row"><dt>query_hash</dt><dd id="auditQuery">q_7f2a91</dd></div>
+          <div class="audit-row"><dt>grounded</dt><dd><span class="badge" id="auditGrounded">true</span></dd></div>
+          <div class="audit-row"><dt>citations</dt><dd id="auditCitations">2</dd></div>
+          <div class="audit-row"><dt>latency_ms</dt><dd id="auditLatency">184</dd></div>
+        </dl>
+        <p class="note">This is a local visual demo. The repository’s Java orchestration tests validate the same grounded-answer and no-evidence safety paths.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const queryForm = document.getElementById("queryForm");
+    const tenantInput = document.getElementById("tenant");
+    const queryInput = document.getElementById("query");
+    const answerText = document.getElementById("answerText");
+    const citations = document.getElementById("citations");
+    const auditTenant = document.getElementById("auditTenant");
+    const auditQuery = document.getElementById("auditQuery");
+    const auditCitations = document.getElementById("auditCitations");
+    const auditLatency = document.getElementById("auditLatency");
+
+    function queryHash(query) {
+      let hash = 0;
+      for (let index = 0; index < query.length; index += 1) {
+        hash = ((hash << 5) - hash) + query.charCodeAt(index);
+        hash |= 0;
+      }
+      return "q_" + Math.abs(hash).toString(16).slice(0, 6);
+    }
+
+    function renderResponse() {
+      const tenant = tenantInput.value;
+      const query = queryInput.value.trim();
+      const hasEvidence = query.length > 0 && !query.toLowerCase().includes("unknown");
+      const latency = 140 + Math.floor(Math.random() * 100);
+      auditTenant.textContent = tenant;
+      auditQuery.textContent = queryHash(query || "empty");
+      auditLatency.textContent = String(latency);
+
+      if (!hasEvidence) {
+        answerText.textContent = "I could not find grounded evidence for that request.";
+        citations.innerHTML = '<div class="citation"><strong>no-evidence</strong><span>generation skipped</span></div>';
+        auditCitations.textContent = "0";
+        return;
+      }
+
+      answerText.textContent = "The policy provides twenty days of annual leave for eligible employees.";
+      citations.innerHTML =
+        '<div class="citation"><strong>policy-7</strong><span>leave-policy.md · 0.94</span></div>' +
+        '<div class="citation"><strong>chunk-1</strong><span>tenant: ' + tenant + '</span></div>';
+      auditCitations.textContent = "2";
+    }
+
+    queryForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+      renderResponse();
+    });
+  </script>
+</body>
+</html>
