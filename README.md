@@ -1,5 +1,7 @@
 # Enterprise RAG Control Plane
 
+Author - Dhruv Banerjee
+
 Architecture-first reference implementation for a grounded, auditable retrieval-augmented generation platform.
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
